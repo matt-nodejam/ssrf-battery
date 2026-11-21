@@ -1,0 +1,2 @@
+# runtime deps: none — stdlib-only Python >= 3.12
+pytest==9.2.0

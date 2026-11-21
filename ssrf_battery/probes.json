@@ -1,0 +1,383 @@
+{
+  "schema": 1,
+  "name": "ssrf-battery probe corpus",
+  "version": "0.1.0",
+  "notes": [
+    "Declarative: every probe below is generated from target x encoding, no free-text",
+    "payloads. Placeholders are expanded by probespec.py; every IPv6 form is",
+    "rendered through stdlib canonical compression ([64:ff9b::7f00:1], not",
+    "7f00:0001): {IP} dotted v4, {NAT64} 64:ff9b::/96-mapped, {NAT64_LU}",
+    "64:ff9b:1::/48-mapped, {MAPPED_HEX} v4-mapped hex, {COMPAT} v4-compatible,",
+    "{SIXTO4} 2002::/16, {TEREDO} 2001::/32 obfuscated client, {HEX32} 8-hex",
+    "v4, {DWORD} decimal, {OCT_DOTTED}/{HEX_DOTTED}/{SHORT} alt notations,",
+    "{CIRCLED}/{FULLWIDTH}/{IDEO_DOT} unicode forms, {V6}/{V6FULL} literal,",
+    "{CIRCLED} best-fit circled digits, {FULLWIDTH} fullwidth digits, {IDEO_DOT}",
+    "ideographic full stops for dots, {PATH} the request path (default '/').",
+    "parse = what ipaddress.ip_address() sees in the host: ip_literal means the",
+    "host IS a literal IP; name means it is hostname-shaped (resolution-dependent)."
+  ],
+  "targets": [
+    {
+      "id": "loopback",
+      "family": "ipv4",
+      "value": "127.0.0.1",
+      "kind": "loopback",
+      "rationale": "Canonical loopback; every guard blocks the plain form, encodings are the test."
+    },
+    {
+      "id": "rfc1918-10",
+      "family": "ipv4",
+      "value": "10.0.0.1",
+      "kind": "private",
+      "rationale": "RFC1918 private space; the NAT64 form 64:ff9b::a00:1 appeared in published SSRF-guard test suites."
+    },
+    {
+      "id": "rfc1918-172",
+      "family": "ipv4",
+      "value": "172.16.0.1",
+      "kind": "private",
+      "rationale": "RFC1918 172.16/12."
+    },
+    {
+      "id": "rfc1918-192",
+      "family": "ipv4",
+      "value": "192.168.1.1",
+      "kind": "private",
+      "rationale": "RFC1918 192.168/16."
+    },
+    {
+      "id": "metadata-aws",
+      "family": "ipv4",
+      "value": "169.254.169.254",
+      "kind": "linklocal-meta",
+      "rationale": "AWS/GCP/Azure metadata endpoint; 64:ff9b::a9fe:a9fe is the published NAT64 form of it."
+    },
+    {
+      "id": "azure-wire",
+      "family": "ipv4",
+      "value": "168.63.129.16",
+      "kind": "provider",
+      "rationale": "Azure Wire Server; published SSRF guards block it explicitly, so its encodings are a fair probe."
+    },
+    {
+      "id": "loopback-v6",
+      "family": "ipv6",
+      "value": "::1",
+      "kind": "loopback",
+      "rationale": "v6 loopback in canonical and exploded forms."
+    },
+    {
+      "id": "metadata-gcp-v6",
+      "family": "ipv6",
+      "value": "fd00:ec2::254",
+      "kind": "ula-meta",
+      "rationale": "GCP dual-stack metadata endpoint in fd00::/8 ULA space."
+    }
+  ],
+  "encodings": [
+    {
+      "id": "nat64_wk",
+      "class": "nat64_wk",
+      "applies": [
+        "ipv4"
+      ],
+      "parse": "ip_literal",
+      "host_form": "[{NAT64}]",
+      "reachability": "nat64-egress",
+      "rationale": "RFC 6052 well-known NAT64 prefix 64:ff9b::/96 with the internal v4 in the low 32 bits. IANA marks the prefix globally routable, so ipaddress.is_global returns True and is_global-default-deny guards (the pydantic-ai class) and manually maintained CIDR lists (ToolHive, Roundcube, MCP fetch) pass it. On NAT64/DNS64 egress it translates back to the internal v4.",
+      "citations": [
+        "GHSA-66qx-2266-pmj6",
+        "GHSA-pph6-vfjv-vpjw",
+        "CVE-2026-114730",
+        "CVE-2026-70485"
+      ]
+    },
+    {
+      "id": "nat64_local",
+      "class": "nat64_local",
+      "applies": [
+        "ipv4"
+      ],
+      "parse": "ip_literal",
+      "host_form": "[{NAT64_LU}]",
+      "reachability": "nat64-egress",
+      "rationale": "RFC 8215 local-use NAT64 prefix 64:ff9b:1::/48. ip-address CVE-2026-101910 exists because no classifier recognized this range; pydantic-ai's advisory calls it out alongside the well-known prefix.",
+      "citations": [
+        "GHSA-cg7w-rg45-pc59",
+        "CVE-2026-101910"
+      ]
+    },
+    {
+      "id": "v4_mapped_dec",
+      "class": "v4_mapped",
+      "applies": [
+        "ipv4"
+      ],
+      "parse": "ip_literal",
+      "host_form": "[::ffff:{IP}]",
+      "reachability": "dual-stack",
+      "rationale": "IPv4-mapped IPv6 with dotted v4 tail. Guards that only ipaddress-check v6 nets (fd00::/8 etc.) miss it; Python exposes .ipv4_mapped but a net-list check without unwrapping does not use it.",
+      "citations": [
+        "GHSA-cg7w-rg45-pc59",
+        "portswigger-url-validation-bypass-cheat-sheet"
+      ]
+    },
+    {
+      "id": "v4_mapped_hex",
+      "class": "v4_mapped",
+      "applies": [
+        "ipv4"
+      ],
+      "parse": "ip_literal",
+      "host_form": "[{MAPPED_HEX}]",
+      "reachability": "dual-stack",
+      "rationale": "IPv4-mapped IPv6, pure hex form (::ffff:7f00:1). Same class as the dotted form; string blocklists that match '127.0.0.1' miss it.",
+      "citations": [
+        "portswigger-url-validation-bypass-cheat-sheet",
+        "payloadsallthethings-ssrf"
+      ]
+    },
+    {
+      "id": "v4_compat",
+      "class": "v4_compat",
+      "applies": [
+        "ipv4"
+      ],
+      "parse": "ip_literal",
+      "host_form": "[{COMPAT}]",
+      "reachability": "conditional",
+      "rationale": "Deprecated IPv4-compatible IPv6 (::7f00:1). pydantic-ai's advisory covers IPv4-compatible addresses; most resolvers treat it as plain v6, where the low 32 bits still route to the v4 on dual stacks. Flagged conditional because modern kernels differ.",
+      "citations": [
+        "GHSA-cg7w-rg45-pc59"
+      ]
+    },
+    {
+      "id": "sixto4",
+      "class": "sixto4",
+      "applies": [
+        "ipv4"
+      ],
+      "parse": "ip_literal",
+      "host_form": "[{SIXTO4}]",
+      "reachability": "conditional",
+      "rationale": "6to4 transition encoding 2002:<v4>:: (2002:7f00:1:: embeds 127.0.0.1). Named in the isPublicIP/transition-encodings advisory class alongside NAT64; needs a 6to4 relay to actually terminate, hence conditional.",
+      "citations": [
+        "owasp-ssrf-prevention-cheat-sheet",
+        "GHSA-cg7w-rg45-pc59"
+      ]
+    },
+    {
+      "id": "teredo",
+      "class": "teredo",
+      "applies": [
+        "ipv4"
+      ],
+      "parse": "ip_literal",
+      "host_form": "[{TEREDO}]",
+      "reachability": "conditional",
+      "rationale": "Teredo 2001::/32 with the obfuscated client v4 (XOR 0xffffffff; 127.0.0.1 -> 80ff:fffe) in the low 32 bits. Rarest of the transition encodings; carried for completeness of the transition-encoding class.",
+      "citations": [
+        "owasp-ssrf-prevention-cheat-sheet"
+      ]
+    },
+    {
+      "id": "ipv4_dword",
+      "class": "ipv4_alt_notation",
+      "applies": [
+        "ipv4"
+      ],
+      "parse": "name",
+      "host_form": "{DWORD}",
+      "reachability": "resolver-conditional",
+      "rationale": "Classic dword integer form (2130706433). ipaddress rejects it so IP-literal guards see a hostname, but POSIX inet_aton/getaddrinfo accept it as 127.0.0.1.",
+      "citations": [
+        "payloadsallthethings-ssrf",
+        "portswigger-url-validation-bypass-cheat-sheet"
+      ]
+    },
+    {
+      "id": "ipv4_hex_dword",
+      "class": "ipv4_alt_notation",
+      "applies": [
+        "ipv4"
+      ],
+      "parse": "name",
+      "host_form": "0x{HEX32}",
+      "reachability": "resolver-conditional",
+      "rationale": "Hex dword form (0x7f000001); same inet_aton semantics as the decimal dword.",
+      "citations": [
+        "payloadsallthethings-ssrf",
+        "portswigger-url-validation-bypass-cheat-sheet"
+      ]
+    },
+    {
+      "id": "ipv4_octal_dotted",
+      "class": "ipv4_alt_notation",
+      "applies": [
+        "ipv4"
+      ],
+      "parse": "name",
+      "host_form": "{OCT_DOTTED}",
+      "reachability": "resolver-conditional",
+      "rationale": "Octal dotted form (0177.0000.0000.0001); inet_aton family treats leading-0 groups as octal, ipaddress rejects.",
+      "citations": [
+        "payloadsallthethings-ssrf",
+        "portswigger-url-validation-bypass-cheat-sheet"
+      ]
+    },
+    {
+      "id": "ipv4_hex_dotted",
+      "class": "ipv4_alt_notation",
+      "applies": [
+        "ipv4"
+      ],
+      "parse": "name",
+      "host_form": "{HEX_DOTTED}",
+      "reachability": "resolver-conditional",
+      "rationale": "Hex dotted form (0x7f.0x0.0x0.0x1); curl and inet_aton accept, ipaddress rejects.",
+      "citations": [
+        "payloadsallthethings-ssrf"
+      ]
+    },
+    {
+      "id": "ipv4_short",
+      "class": "ipv4_alt_notation",
+      "applies": [
+        "ipv4"
+      ],
+      "parse": "name",
+      "host_form": "{SHORT}",
+      "reachability": "resolver-conditional",
+      "rationale": "Short form (127.1 = 127.0.0.1); the classic a.b/c compression inet_aton honors.",
+      "citations": [
+        "payloadsallthethings-ssrf",
+        "portswigger-url-validation-bypass-cheat-sheet"
+      ]
+    },
+    {
+      "id": "idna_circled",
+      "class": "idna_bestfit",
+      "applies": [
+        "ipv4"
+      ],
+      "parse": "name",
+      "host_form": "{CIRCLED}",
+      "reachability": "bestfit-conditional",
+      "rationale": "Circled digits (①②⑦.⓪.⓪.①): Unicode best-fit maps U+2460-series digits to ASCII digits before resolution, so WHATWG-URL/IDNA resolvers reach 127.0.0.1 while the guard sees a foreign hostname. Established by the curl best-fit HackerOne report and url-parse #241; the MCP fetch IDNA advisory is the check-vs-connect differential.",
+      "citations": [
+        "H1-2552179-curl-bestfit",
+        "url-parse-241-unicode-confusable",
+        "mcp-fetch-idna-check-vs-connect"
+      ]
+    },
+    {
+      "id": "idna_fullwidth",
+      "class": "idna_bestfit",
+      "applies": [
+        "ipv4"
+      ],
+      "parse": "name",
+      "host_form": "{FULLWIDTH}",
+      "reachability": "bestfit-conditional",
+      "rationale": "Fullwidth digits (１２７．０．０．１): same best-fit normalization family as circled digits.",
+      "citations": [
+        "H1-2552179-curl-bestfit",
+        "portswigger-url-validation-bypass-cheat-sheet"
+      ]
+    },
+    {
+      "id": "idna_ideographic_dot",
+      "class": "idna_bestfit",
+      "applies": [
+        "ipv4"
+      ],
+      "parse": "name",
+      "host_form": "{IDEO_DOT}",
+      "reachability": "bestfit-conditional",
+      "rationale": "ASCII digits with ideographic full stops (127。0。0。1): separator normalization, the exact shape of the curl best-fit report.",
+      "citations": [
+        "H1-2552179-curl-bestfit"
+      ]
+    },
+    {
+      "id": "v6_exploded",
+      "class": "ipv6_literal_variant",
+      "applies": [
+        "ipv6"
+      ],
+      "parse": "ip_literal",
+      "host_form": "[{V6FULL}]",
+      "reachability": "direct",
+      "rationale": "Exploded zero-padded form (0:0:0:0:0:0:0:1). Guards doing string matching on '::1' or net membership both handle it when they parse; carried as the v6-canonical control encoding that a competent guard must hold.",
+      "citations": [
+        "portswigger-url-validation-bypass-cheat-sheet"
+      ]
+    },
+    {
+      "id": "v6_canonical",
+      "class": "ipv6_literal_variant",
+      "applies": [
+        "ipv6"
+      ],
+      "parse": "ip_literal",
+      "host_form": "[{V6}]",
+      "reachability": "direct",
+      "rationale": "Canonical short form (::1, fd00:ec2::254); the v6 equivalent of the plain-IPv4 control.",
+      "citations": [
+        "payloadsallthethings-ssrf"
+      ]
+    },
+    {
+      "id": "allowlist_userinfo",
+      "class": "allowlist_confusion",
+      "applies": [
+        "ipv4"
+      ],
+      "parse": "ip_literal",
+      "url_form": "http://safe.example.@{IP}{PATH}",
+      "reachability": "direct",
+      "rationale": "Userinfo trick: allowlist checks that substring-match the trusted domain see safe.example, the real host is the internal IP. urlsplit-based guards see through it; string-contains guards do not.",
+      "citations": [
+        "portswigger-url-validation-bypass-cheat-sheet"
+      ]
+    },
+    {
+      "id": "allowlist_fragment_at",
+      "class": "allowlist_confusion",
+      "applies": [
+        "ipv4"
+      ],
+      "parse": "name",
+      "url_form": "http://{IP}\\@safe.example{PATH}",
+      "reachability": "conditional",
+      "rationale": "Backslash + @: WHATWG parsers treat the backslash as a path separator so the real host is the IP; lax splits see safe.example as the host. Parser-differential class (Claroty confusion family).",
+      "citations": [
+        "portswigger-url-validation-bypass-cheat-sheet",
+        "claroty-url-parsing-confusion"
+      ]
+    }
+  ],
+  "controls": [
+    {
+      "id": "ctl-safe-name",
+      "polarity": "safe",
+      "parse": "name",
+      "url": "http://example.com/",
+      "rationale": "A guard that rejects everything must not be scored as holding the line."
+    },
+    {
+      "id": "ctl-safe-literal",
+      "polarity": "safe",
+      "parse": "ip_literal",
+      "url": "http://8.8.8.8/",
+      "rationale": "Public IP literal the guard must accept."
+    },
+    {
+      "id": "ctl-internal-plain",
+      "polarity": "internal",
+      "parse": "ip_literal",
+      "url": "http://127.0.0.1/",
+      "rationale": "Plaintext internal literal the guard must reject; establishes the guard exists at all."
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+[project]
+name = "ssrf-battery"
+version = "0.1.0"
+description = "Guard-semantics battery for SSRF URL-validation bypasses: 109 address-encoding probes, evidence-grade reports, consent-walled."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { file = "LICENSE" }
+authors = [{ name = "Matt Jesc" }]
+keywords = ["security", "ssrf", "url-validation", "nat64", "bugbounty", "osstool"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Information Technology",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Security",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/matt-nodejam/ssrf-battery"
+"Prior art" = "https://github.com/matt-nodejam/ssrf-battery/blob/main/PRIOR-ART.md"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
