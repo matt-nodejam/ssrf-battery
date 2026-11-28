@@ -30,7 +30,7 @@ actually connect to. IPv6 transition technologies (NAT64, 6to4, Teredo,
 v4-mapped), alternative IPv4 notations, and IDNA best-fit normalization all
 let an internal destination wear a public-looking costume. This class is not
 speculative — it landed repeatedly in 2025–2026
-(GHSA-66qx-2266-pmj6, GHSA-cg7w-rg45-pc59, GHSA-pph6-vfjv-vpjw,
+(GHSA-cg7w-rg45-pc59, GHSA-pph6-vfjv-vpjw,
 CVE-2026-114730, CVE-2026-70485, CVE-2026-101910, CVE-2026-81678…).
 
 ## Probe taxonomy — 109 probes, 10 technique classes
@@ -39,7 +39,7 @@ Counts verified from the corpus generator, not from documentation:
 
 | class | probes | what it encodes | established by |
 |---|---|---|---|
-| **nat64_wk** | 6 | RFC 6052 well-known `64:ff9b::/96`, internal v4 in low 32 bits (`64:ff9b::7f00:1` = 127.0.0.1, `64:ff9b::a9fe:a9fe` = cloud metadata). IANA marks it globally routable → `is_global` guards pass it. | GHSA-66qx-2266-pmj6, GHSA-pph6-vfjv-vpjw, CVE-2026-114730, CVE-2026-70485 |
+| **nat64_wk** | 6 | RFC 6052 well-known `64:ff9b::/96`, internal v4 in low 32 bits (`64:ff9b::7f00:1` = 127.0.0.1, `64:ff9b::a9fe:a9fe` = cloud metadata). IANA marks it globally routable → `is_global` guards pass it. | GHSA-pph6-vfjv-vpjw, CVE-2026-114730, CVE-2026-70485 |
 | **nat64_local** | 6 | RFC 8215 local-use `64:ff9b:1::/48`. | GHSA-cg7w-rg45-pc59, CVE-2026-101910 |
 | **v4_mapped** | 12 | `::ffff:127.0.0.1` / `::ffff:7f00:1`. | GHSA-cg7w-rg45-pc59, PortSwigger cheat sheet |
 | **v4_compat** | 6 | deprecated `::7f00:1`. | GHSA-cg7w-rg45-pc59 |
